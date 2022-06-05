@@ -681,7 +681,7 @@ export class CustomItemRoll {
 		// Check if we need to consume ammo. It will be consumed later (so that attack calcs work properly)
 		// This consumes even if consuming is globally disabled. Roll repeats need to consume ammo.
 		let ammo = null;
-		let ammoUpdate = null;
+		let ammoUpdate = {};
 		if (actor && item) {
 			const request = this.params.useCharge;
 			const consume = item.data.data.consume;
@@ -692,7 +692,7 @@ export class CustomItemRoll {
 					this.error = true;
 					return;
 				}
-				ammoUpdate = usage.resourceUpdates || [];
+				ammoUpdate = usage.resourceUpdates || {};
 			}
 		}
 
@@ -700,10 +700,18 @@ export class CustomItemRoll {
 		for (const field of this.fields) {
 			await this._processField(field);
 		}
-
+                /*
 		// Consume ammo (now that fields have been processed)
 		if (ammoUpdate?.length)
 			await actor?.updateEmbeddedDocuments("Item", ammoUpdate);
+                */
+
+		// Bugfix(01/05/2022) for dnd5e system version 1.6.0: ammoUpdate may be an array containing the actual object we're interested in
+		if(ammo && Array.isArray(ammoUpdate)){ ammoUpdate = ammoUpdate[0]; }
+
+		if (ammo && !isObjectEmpty(ammoUpdate)) {
+			await ammo.update(ammoUpdate);
+		}
 
 		// Post-build item updates
 		if (item) {
@@ -1199,14 +1207,15 @@ export class CustomItemRoll {
 
 		let actorUpdates = {};
 		let itemUpdates = {};
-		let resourceUpdates = [];
+		let resourceUpdates = {};
 
 		// Merges update data from _getUsageUpdates() into the result dictionaries
 		// Note: mergeObject() also resolves "." nesting which is not what we want
 		function mergeUpdates(updates) {
 			actorUpdates = { ...actorUpdates, ...(updates.actorUpdates ?? {})};
 			itemUpdates = { ...itemUpdates, ...(updates.itemUpdates ?? {})};
-			resourceUpdates.push(...(updates.resourceUpdates ?? []));
+			//resourceUpdates.push(...(updates.resourceUpdates ?? []));
+			resourceUpdates = { ...resourceUpdates, ...(updates.resourceUpdates ?? {})};
 		}
 
 		const itemData = item.data.data;
@@ -1269,9 +1278,15 @@ export class CustomItemRoll {
 
 		if (!isObjectEmpty(itemUpdates)) await item.update(itemUpdates);
 		if (!isObjectEmpty(actorUpdates)) await actor.update(actorUpdates);
-
+                /*
 		if (resourceUpdates.length)
 			await actor?.updateEmbeddedDocuments("Item", resourceUpdates);
+                */
+
+		if (!isObjectEmpty(resourceUpdates)) {
+			const resource = actor.items.get(itemData.consume?.target);
+			if (resource) await resource.update(resourceUpdates);
+		}
 
 		// Destroy item if it gets consumed
 		if (itemUpdates["data.quantity"] === 0 && autoDestroy) {
