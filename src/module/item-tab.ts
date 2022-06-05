@@ -1,3 +1,4 @@
+import type { ItemData } from "@league-of-foundry-developers/foundry-vtt-types/src/foundry/common/data/module.mjs.js";
 import { isAttack, isSave } from "./betterrolls5e.js";
 import { i18n, ItemUtils } from "./utils/index.js";
 
@@ -6,20 +7,22 @@ let activate = false;
 /**
  * Adds adds the Better Rolls tab to an item's sheet. Should only be called when the sheet is rendered.
  */
-export async function addBetterRollsContent(app, protoHtml) {
-	const item = app.object;
+export async function addBetterRollsContent(app:any, protoHtml:JQuery<HTMLElement>, data:ItemData) {
+	const item = <Item>app.object;
 	const itemData = item.data.data;
 
 	if (item.actor && item.actor.permission < 3) { return; }
+	//@ts-ignore
 	if (CONFIG.betterRolls5e.validItemTypes.indexOf(item.data.type) == -1) { return; }
 
 	// Initialize flags. Don't commit to avoid a nested re-render
 	ItemUtils.ensureFlags(item);
 
 	let html = protoHtml;
+	const html0 = <HTMLElement>html[0];
 
-	if (html[0].localName !== "div") {
-		html = $(html[0].parentElement.parentElement);
+	if (html0.localName !== "div") {
+		html = $(<HTMLElement>html0.parentElement?.parentElement);
 	}
 
 	// Create tab (for selection)

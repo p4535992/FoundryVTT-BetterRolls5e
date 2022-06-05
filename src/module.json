@@ -2,22 +2,26 @@
   "name": "betterrolls5e",
   "title": "Better Rolls for 5e",
   "description": "This module overhauls rolls for the D&D 5e system, allowing \"dual rolls\" for d20 rolls, buttons that support full output to chat, and customization for said outputs.",
-  "author": "Red Reign#5128,vorkane#5447,Colenk",
-  "authors": [],
-  "url": "https://github.com/Colenk/FoundryVTT-BetterRolls5e/edit/master/betterrolls5e",
-  "flags": {},
+  "author": "Red Reign#5128,vorkane#5447,Colenk,p4535992",
+  "authors": [
+    { "name": "Red Reign#5128" },
+    { "name": "vorkane#5447" },
+    { "name": "Colenk" },
+    {
+      "name": "p4535992",
+      "url": "https://github.com/p4535992",
+      "discord": "",
+      "twitter": "",
+      "patreon": "",
+      "github": "p4535992",
+      "ko-fi": "",
+      "reddit": "",
+      "email": ""
+    }
+  ],
+  "type": "module",
+  "socket": true,
   "version": "1.8.0",
-  "minimumCoreVersion": "9",
-  "compatibleCoreVersion": "9",
-  "scripts": [
-    "greensock/dist/gsap.min.js"
-  ],
-  "esmodules": [
-    "./scripts/index.js"
-  ],
-  "styles": [
-    "./css/betterrolls5e.css"
-  ],
   "languages": [
     {
       "lang": "en",
@@ -60,16 +64,39 @@
       "path": "lang/cs.json"
     }
   ],
+  "scripts": [
+    "greensock/dist/gsap.min.js"
+  ],
+  "esmodules": [
+    "./main.js"
+  ],
+  "styles": [
+    "./css/betterrolls5e.css"
+  ],
   "packs": [],
   "system": [
     "dnd5e"
   ],
-  "dependencies": [],
-  "socket": true,
-  "manifest": "https://raw.githubusercontent.com/Colenk/FoundryVTT-BetterRolls5e/master/betterrolls5e/module.json",
-  "download": "https://github.com/Colenk/FoundryVTT-BetterRolls5e/raw/master/module.zip",
-  "protected": false,
-  "coreTranslation": false,
-  "minimumSystemVersion": "1.5.2",
-  "library": false
+  "minimumCoreVersion": "9",
+  "compatibleCoreVersion": "9",
+  "manifestPlusVersion": "1.2.0",
+  "url": "https://github.com/p4535992/conditional-visibility",
+  "manifest": "https://github.com/p4535992/FoundryVTT-BetterRolls5e/releases/latest/download/module.json",
+  "download": "https://github.com/p4535992/FoundryVTT-BetterRolls5e/releases/latest/download/module.zip",
+  "readme": "https://github.com/p4535992/FoundryVTT-BetterRolls5e/blob/v0.6.9/README.md",
+  "changelog": "https://github.com/p4535992/FoundryVTT-BetterRolls5e/blob/v0.6.9/changelog.md",
+  "bugs": "https://github.com/p4535992/FoundryVTT-BetterRolls5e/issues",
+  "allowBugReporter": true,
+  "dependencies": [
+    {
+      "name": "lib-wrapper"
+    },
+    {
+      "name": "socketlib"
+    }
+  ],
+  "flags": {
+    "manifestPlusVersion": "1.2.0",
+    "allowBugReporter": true
+  }
 }

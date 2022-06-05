@@ -5,6 +5,12 @@ import { ItemUtils, Utils } from "./utils/index.js";
 import { addBetterRollsContent } from "./item-tab.js";
 import { patchCoreFunctions } from "./patching/index.js"
 import { migrate } from "./migration.js";
+import { registerSocket } from "./socket.js";
+import API from "./api.js";
+import { setApi } from "../main.js";
+import { i18n } from "./lib/lib.js";
+import type { ItemData } from "@league-of-foundry-developers/foundry-vtt-types/src/foundry/common/data/module.mjs.js";
+import CONSTANTS from "./constants.js";
 
 // Attaches BetterRolls to actor sheet
 Hooks.on("renderActorSheet5e", (app, html, data) => {
@@ -18,55 +24,67 @@ Hooks.on("renderActorSheet5e", (app, html, data) => {
 		}
 	}, 0);
 });
-
 // Attaches BetterRolls to item sheet
-Hooks.on("renderItemSheet5e", (app, html, data) => {
+Hooks.on("renderItemSheet5e", (app:any, html:JQuery<HTMLElement>, data:ItemData) => {
 	addBetterRollsContent(app, html, data);
 });
 
-Hooks.once("init", () => {
+export const initHooks = async () => {
 	BRSettings.init();
 	patchCoreFunctions();
 
 	// Setup template partials
-	const prefix = "modules/betterrolls5e/templates"
 	loadTemplates([
-		`${prefix}/red-damage-crit.html`
+		`${CONSTANTS.PATH}/red-damage-crit.html`
 	]);
-});
 
-Hooks.on("ready", async () => {
+	Hooks.once('socketlib.ready', registerSocket);
+
+	//@ts-ignore
+	window.BetterRolls = BetterRolls();
+	//@ts-ignore
+	window.BetterRolls.API = API;
+};
+
+export const setupHooks = async () => {
+	//@ts-ignore
+	setApi(window.BetterRolls.API);
+};
+
+export const readyHooks = async () => {
 	await migrate();
 
 	// Make a combined damage type array that includes healing
+	//@ts-ignore
 	const dnd5e = CONFIG.DND5E;
+	//@ts-ignore
 	CONFIG.betterRolls5e.combinedDamageTypes = mergeObject(duplicate(dnd5e.damageTypes), dnd5e.healingTypes);
 
 	// Updates crit text from the dropdown.
-	let critText = BRSettings.critString;
+	let critText = <string>BRSettings.critString;
 	if (critText.includes("br5e.critString")) {
 		critText = i18n(critText);
 		game.settings.set("betterrolls5e", "critString", critText);
 	}
 
 	// Set up socket
-	game.socket.on("module.betterrolls5e", (data) => {
-		if (data?.action === "roll-sound") {
-			Utils.playDiceSound();
-		}
-	});
+	// game.socket.on("module.betterrolls5e", (data) => {
+	// 	if (data?.action === "roll-sound") {
+	// 		Utils.playDiceSound();
+	// 	}
+	// });
 
 	// Initialize Better Rolls
-	window.BetterRolls = BetterRolls();
+	// window.BetterRolls = BetterRolls();
 	Hooks.call("readyBetterRolls");
-});
+};
 
 // Create flags for item when it's first created
 Hooks.on("preCreateItem", (item) => ItemUtils.ensureFlags(item));
 
 // Modify context menu for damage rolls (they break)
 Hooks.on("getChatLogEntryContext", (html, options) => {
-	let contextDamageLabels = [
+	const contextDamageLabels = [
 		game.i18n.localize("DND5E.ChatContextDamage"),
 		game.i18n.localize("DND5E.ChatContextHealing"),
 		game.i18n.localize("DND5E.ChatContextDoubleDamage"),
@@ -74,9 +92,9 @@ Hooks.on("getChatLogEntryContext", (html, options) => {
 	];
 
 	for (let i=options.length-1; i>=0; i--) {
-		let option = options[i];
+		const option = options[i];
 		if (contextDamageLabels.includes(option.name)) {
-			option.condition = li => canvas.tokens.controlled.length && li.find(".dice-roll").length && !li.find(".red-full").length;
+			option.condition = li => canvas.tokens?.controlled.length && li.find(".dice-roll").length && !li.find(".red-full").length;
 		}
 	}
 });
