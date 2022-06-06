@@ -1,6 +1,7 @@
 import { dnd5e, i18n, ActorUtils, ItemUtils, Utils } from "./utils/index.js";
 import { BRSettings, getSettings } from "./settings.js";
 import { isSave } from "./betterrolls5e.js";
+import { error, i18nFormat } from "./lib/lib.js";
 
 /**
  * Roll type for advantage/disadvantage/etc
@@ -22,11 +23,14 @@ export class RollFields {
 	 * @param {number?} options.slotLevel
 	 * @returns {import("./renderer.js").HeaderDataProps}
 	 */
-	static constructHeaderData(options={}) {
-		const { item, slotLevel } = options;
-		const actor = options?.actor ?? item?.actor;
-		const img = options.img ?? item?.img ?? ActorUtils.getImage(actor);
-		let title = options.title ?? item?.name ?? actor?.name ?? '';
+	static constructHeaderData(options:any={}) {
+		// const { item, slotLevel } = options;
+		const item = <Item>options.item;
+		const slotLevel = <number>options.slotLevel;
+		const actor = <Actor>options?.actor ?? item?.actor;
+		const img = <string>options.img ?? item?.img ?? ActorUtils.getImage(actor);
+		let title = <string>options.title ?? item?.name ?? actor?.name ?? '';
+		//@ts-ignore
 		if (item?.data.type === "spell" && slotLevel && slotLevel != item.data.data.level) {
 			title += ` (${dnd5e.spellLevels[slotLevel]})`;
 		}
@@ -48,7 +52,7 @@ export class RollFields {
 	 * @param {BRSettings} options.settings additional settings to override
 	 * @returns {import("./renderer.js").MultiRollDataProps}
 	 */
-	static constructMultiRoll(options={}) {
+	static constructMultiRoll(options:any={}) {
 		const { critThreshold, title, rollType, elvenAccuracy } = options;
 		if (!options.formula) {
 			console.error("No formula given for multi-roll");
@@ -79,14 +83,15 @@ export class RollFields {
 		try {
 			// Split the D20 and bonuses. We assume the first is a d20 roll always...
 			const fullRoll = new Roll(formula);
-			const baseRoll = new Roll(fullRoll.terms[0].formula ?? fullRoll.terms[0]);
+			const baseRoll = new Roll((<RollTerm>fullRoll.terms[0]).formula ?? fullRoll.terms[0]);
 			const bonusRollFormula = [...fullRoll.terms.slice(1).map(t => t.formula ?? t)].join(' ') || "0";
 			const bonusRoll = new Roll(bonusRollFormula).roll({async: false});
 
 			// Populate the roll entries
-			const entries = [];
+			const entries:any[] = [];
 			for (let i = 0; i < numRolls; i++) {
-				entries.push(Utils.processRoll(baseRoll.reroll({async: false}), critThreshold, [20], bonusRoll));
+				const theRoll = Utils.processRoll(baseRoll.reroll(<any>{async: false}), <any>critThreshold, <boolean>!![20], <any>bonusRoll);
+				entries.push(theRoll);
 			}
 
 			// Mark ignored rolls if advantage/disadvantage
@@ -117,7 +122,7 @@ export class RollFields {
 				bonus: bonusRoll
 			};
 		} catch (err) {
-			ui.notifications.error(i18n("br5e.error.rollEvaluation", { msg: err.message}));
+			error(i18nFormat("br5e.error.rollEvaluation", { msg: <string>err.message}));
 			throw err; // propagate the error
 		}
 	}
@@ -136,7 +141,7 @@ export class RollFields {
 	 * @param {RollState} options.rollState
 	 * @param {number} options.slotLevel
 	 */
-	static async constructAttackRoll(options={}) {
+	static async constructAttackRoll(options:any={}) {
 		const { formula, item, rollState, slotLevel } = options;
 		const actor = options.actor ?? item?.actor;
 
@@ -163,12 +168,12 @@ export class RollFields {
 		}
 
 		// Get Roll. Use Formula if given, otherwise get it from the item
-		let roll = null;
+		let roll:Roll|null = null;
 		if (formula) {
 			const rollData = Utils.getRollData({item, actor, abilityMod, slotLevel });
 			roll = new Roll(formula, rollData);
 		} else if (item) {
-			roll = await ItemUtils.getAttackRoll(item);
+			roll = await ItemUtils.getAttackRoll(<any>item);
 		} else {
 			return null;
 		}
@@ -202,7 +207,7 @@ export class RollFields {
 	 * @param {BRSettings} options.settings Override config to use for the roll
 	 * @returns {import("./renderer.js").DamageDataProps}
 	 */
-	static constructDamageRoll(options={}) {
+	static constructDamageRoll(options:any={}) {
 		const { item, damageIndex, slotLevel, isCrit } = options;
 		const actor = options?.actor ?? item?.actor;
 		const isVersatile = damageIndex === "versatile";
