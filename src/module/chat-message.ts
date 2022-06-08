@@ -9,6 +9,11 @@ import { i18n, Utils } from "./utils/index.js";
  * with BetterRollsChatCard.bind().
  */
 export class BetterRollsChatCard {
+
+	id:string;
+	roll:CustomItemRoll;
+	speaker:Actor;
+
 	/** Min version to enable the card on, to prevent breakage */
 	static min_version = "1.4";
 
@@ -17,7 +22,7 @@ export class BetterRollsChatCard {
 	}
 
 	get message() {
-		return game.messages.get(this.id);
+		return game.messages?.get(this.id);
 	}
 
 	/**
@@ -32,12 +37,12 @@ export class BetterRollsChatCard {
 		// and we can't do anything except rely on closures to handle those events.
 		this.id = message.id;
 		this.roll = CustomItemRoll.fromMessage(message);
-		this.speaker = game.actors.get(message.data.speaker.actor);
+		this.speaker = <Actor>game.actors?.get(message.data.speaker.actor);
 		message.BetterRoll = this.roll;
 
 		// Hide Save DCs
 		const actor = this.speaker;
-		if ((!actor && !game.user.isGM) || actor?.permission != 3) {
+		if ((!actor && !game.user?.isGM) || actor?.permission != 3) {
 			html.find(".hideSave").text(i18n("br5e.hideDC.string"));
 		}
 
@@ -91,9 +96,13 @@ export class BetterRollsChatCard {
 			}, 0);
 
 			// Scroll to bottom if the last card had updated
-			const last = game.messages.contents[game.messages.size - 1];
+			const last = game.messages?.contents[game.messages?.size - 1];
 			if (last?.id === existing.id) {
-				window.setTimeout(() => { ui.chat.scrollBottom(); }, 0);
+				window.setTimeout(() => {
+					//ui.chat.scrollBottom(undefined);
+					const log = document.querySelector('#chat-log');
+					log?.scrollTo({ behavior: 'smooth', top: log.scrollHeight });
+				}, 0);
 			}
 
 			return existing;
@@ -110,7 +119,8 @@ export class BetterRollsChatCard {
 	 * @param {*} options
 	 */
 	static addOptions(html, options) {
-		const getBinding = (li) => game.messages.get(li.data("messageId"))?.BetterRollsCardBinding;
+		//@ts-ignore
+		const getBinding = (li) => game.messages?.get(li.data("messageId"))?.BetterRollsCardBinding;
 
 		options.push({
 			name: i18n("br5e.chatContext.repeat"),
@@ -132,15 +142,16 @@ export class BetterRollsChatCard {
 	async _setupOverlayButtons(html) {
 		// Add reroll button
 		if (this.roll?.canRepeat()) {
-			const templateHeader = await renderTemplate("modules/betterrolls5e/templates/red-overlay-header.html");
+			const templateHeader = await renderTemplate("modules/betterrolls5e/templates/red-overlay-header.html",{});
 			html.find(".card-header").append($(templateHeader));
 		}
 
 		// Multiroll buttons (perhaps introduce a new toggle property?)
 		if (this.roll) {
-			const templateMulti = await renderTemplate("modules/betterrolls5e/templates/red-overlay-multiroll.html");
+			const templateMulti = await renderTemplate("modules/betterrolls5e/templates/red-overlay-multiroll.html",{});
 
 			// Add multiroll overlay buttons to the DOM.
+			//@ts-ignore
 			for (const entry of this.roll.entries) {
 				if (entry.type === "multiroll" && !entry.rollState && entry.entries?.length === 1) {
 					const element = html.find(`.red-dual[data-id=${entry.id}] .dice-row.red-totals`);
@@ -166,7 +177,7 @@ export class BetterRollsChatCard {
 
 		// Setup augment crit and apply damage button
 		const templateName = (BRSettings.chatDamageButtonsEnabled) ? "red-overlay-damage" : "red-overlay-damage-crit-only";
-		const templateDamage = await renderTemplate(`modules/betterrolls5e/templates/${templateName}.html`);
+		const templateDamage = await renderTemplate(`modules/betterrolls5e/templates/${templateName}.html`,{});
 		const dmgElements = html.find('.dice-total .red-base-die, .dice-total .red-extra-die').parents('.dice-row').toArray();
 		const customElements = html.find('[data-type=custom] .red-base-die').toArray();
 
@@ -214,8 +225,9 @@ export class BetterRollsChatCard {
 			}
 
 			setTimeout(() => {
-				if (canvas.hud.token._displayState && canvas.hud.token._displayState !== 0) {
-					canvas.hud.token.render();
+				//@ts-ignore
+				if (canvas.hud?.token._displayState && canvas.hud.token._displayState !== 0) {
+					canvas.hud?.token.render();
 				}
 			}, 50);
 		});
@@ -235,10 +247,10 @@ export class BetterRollsChatCard {
 		html.hover(this._onHover.bind(this, html), this._onHoverEnd.bind(this, html));
 	}
 
-	async applyDamage(actor, damageType, damage, modifier) {
+	async applyDamage(actor:Actor, damageType:string, damage:number, modifier:any) {
 		if (damageType === "temphp" && modifier < 0) {
-			const healing = Math.abs(modifier) * damage;
-			const actorData = actor.data.data;
+			const healing = <number>Math.abs(modifier) * damage;
+			const actorData = <any>actor.data.data;
 			if (actorData.attributes.hp.temp > 0) {
 				const overwrite = await Dialog.confirm({
 					title: i18n("br5e.chat.damageButtons.tempOverwrite.title"),

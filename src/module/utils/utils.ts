@@ -62,7 +62,7 @@ export class Utils {
 	/**
 	 * Additional data to attach to the chat message.
 	 */
-	static getWhisperData(rollMode = null) {
+	static getWhisperData(rollMode = null):WhisperData {
 		let whisper = undefined;
 		let blind = null;
 
@@ -170,7 +170,7 @@ export class Utils {
 	 * Returns the item's roll data first, and then falls back to actor
 	 * @returns {object}
 	 */
-	static getRollData({item = null, actor = null, abilityMod, slotLevel=undefined}) {
+	static getRollData(item:Item, actor:Actor, abilityMod:string, slotLevel:number) {
 		return item ?
 			ItemUtils.getRollData(item, { abilityMod, slotLevel }) :
 			actor?.getRollData() ?? {};
@@ -567,7 +567,7 @@ export class ItemUtils {
 	 * This uses item.getRollData(), but allows overriding with additional properties
 	 * @param {*} item
 	 */
-	static getRollData(item, { abilityMod, slotLevel=undefined } = {}) {
+	static getRollData(item:Item, { abilityMod = '', slotLevel = 0 } = {}) {
 		const rollData = item.getRollData();
 		if (rollData) {
 			const abl = abilityMod ?? item?.abilityMod;
@@ -813,7 +813,8 @@ export class ItemUtils {
 
 		return {
 			ability: item.data.data?.save?.ability,
-			dc: item.getSaveDC()
+			dc: item.getSaveDC(),
+			context: {}
 		};
 	}
 }

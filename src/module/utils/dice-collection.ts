@@ -26,7 +26,7 @@ export class DiceCollection {
 	 * @returns {Promise<boolean>}
 	 */
 	static createAndFlush(rolls) {
-		return new DiceCollection(...rolls).flush();
+		return new DiceCollection(...rolls).flush(undefined,undefined);
 	}
 
 	/**
@@ -45,7 +45,7 @@ export class DiceCollection {
 	 * Currently its just Dice So Nice (if enabled).
 	 * @returns {Promise<boolean>} if there were dice in the pool
 	 */
-	async flush({ hasMaestroSound=false, whisperData=null }) {
+	async flush({ hasMaestroSound:boolean=false, whisperData=null }) {
 		// Get and reset immediately (stacking flush calls shouldn't roll more dice)
 		const pool = this.pop();
 

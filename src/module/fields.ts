@@ -142,8 +142,10 @@ export class RollFields {
 	 * @param {number} options.slotLevel
 	 */
 	static async constructAttackRoll(options:any={}) {
-		const { formula, item, rollState, slotLevel } = options;
-		const actor = options.actor ?? item?.actor;
+		const { formula, itemTmp, rollState, slotLevelTmp } = options;
+		const slotLevel = <number>slotLevelTmp;
+		const item =<Item>itemTmp;
+		const actor = <Actor>options.actor ?? item?.actor;
 
 		// Get critical threshold
 		const critThreshold = options.critThreshold ??
@@ -151,7 +153,8 @@ export class RollFields {
 			ActorUtils.getCritThreshold(actor, options.itemType) ??
 			20;
 
-		const abilityMod = options.abilityMod ?? item?.abilityMod;
+		//@ts-ignore
+		const abilityMod = <string>options.abilityMod ?? item?.abilityMod;
 		const elvenAccuracy = ActorUtils.testElvenAccuracy(actor, abilityMod);
 
 		let title = options.title;
@@ -160,9 +163,10 @@ export class RollFields {
 		// Note that "null" is a valid title, so we can't override that
 		if (typeof title === 'undefined') {
 			title = i18n("br5e.chat.attack");
+			//@ts-ignore
 			const consume = item?.data.data.consume;
 			if ((consume?.type === 'ammo') && !!actor.items) {
-				const ammo = actor.items.get(consume.target);
+				const ammo = <Item>actor.items.get(consume.target);
 				title += ` [${ammo.name}]`;
 			}
 		}
@@ -170,10 +174,11 @@ export class RollFields {
 		// Get Roll. Use Formula if given, otherwise get it from the item
 		let roll:Roll|null = null;
 		if (formula) {
-			const rollData = Utils.getRollData({item, actor, abilityMod, slotLevel });
+			const rollData = Utils.getRollData(item, actor, abilityMod, slotLevel);
 			roll = new Roll(formula, rollData);
 		} else if (item) {
-			roll = await ItemUtils.getAttackRoll(<any>item);
+			const rollState = null
+			roll = await ItemUtils.getAttackRoll(item, rollState);
 		} else {
 			return null;
 		}
@@ -198,6 +203,7 @@ export class RollFields {
 	 * @param {Actor} options.actor
 	 * @param {Item} options.item
 	 * @param {number | "versatile" | "other"} options.damageIndex
+	 * @param {string?} options.abilityMod
 	 * @param {number?} options.slotLevel
 	 * @param {string?} options.context Optional damage context. Defaults to the configured damage context
 	 * @param {string?} options.damageType
@@ -208,7 +214,7 @@ export class RollFields {
 	 * @returns {import("./renderer.js").DamageDataProps}
 	 */
 	static constructDamageRoll(options:any={}) {
-		const { item, damageIndex, slotLevel, isCrit } = options;
+		const { item, damageIndex, abilityMod, slotLevel, isCrit } = options;
 		const actor = options?.actor ?? item?.actor;
 		const isVersatile = damageIndex === "versatile";
 		const isFirst = damageIndex === 0 || isVersatile;
@@ -218,11 +224,11 @@ export class RollFields {
 		const { critBehavior } = settings;
 
 		const rollData = item ?
-			ItemUtils.getRollData(item, { slotLevel }) :
+			ItemUtils.getRollData(item, { abilityMod, slotLevel }) :
 			actor?.getRollData();
 
 		// Bonus parts to add to the formula
-		const parts = [];
+		const parts:number[] = [];
 
 		// Determine certain fields based on index
 		let title = options.title;
@@ -279,10 +285,10 @@ export class RollFields {
 			const total = baseRoll.total;
 
 			// Roll crit damage if relevant
-			let critRoll = null;
+			let critRoll:Roll<{}>|null = null;
 			if (damageIndex !== "other") {
 				if (isCrit && critBehavior !== "0") {
-					critRoll = ItemUtils.getCritRoll(baseRoll.formula, total, { settings, extraCritDice });
+					critRoll = <Roll<{}>>ItemUtils.getCritRoll(baseRoll.formula, total, { settings, extraCritDice });
 				}
 			}
 
@@ -297,7 +303,7 @@ export class RollFields {
 				critRoll
 			};
 		} catch (err) {
-			ui.notifications.error(i18n("br5e.error.rollEvaluation", { msg: err.message}));
+			error(i18nFormat("br5e.error.rollEvaluation", { msg: err.message}), true);
 			throw err; // propagate the error
 		}
 	}
@@ -310,6 +316,7 @@ export class RollFields {
 	 * @param {Actor} options.actor
 	 * @param {Item} options.item
 	 * @param {number | "versatile" | "other"} options.damageIndex
+	 * @param {string?} options.abilityMod,
 	 * @param {number?} options.slotLevel
 	 * @param {string?} options.context Optional damage context. Defaults to the configured damage context
 	 * @param {string?} options.damageType
@@ -317,17 +324,17 @@ export class RollFields {
 	 * @param {BRSettings} options.settings Override config to use for the roll
 	 * @returns {import("./renderer.js").DamageDataProps}
 	 */
-	static constructCritDamageRoll(options={}) {
-		const { item, slotLevel } = options;
+	static constructCritDamageRoll(options:any={}) {
+		const { item, abilityMod, slotLevel } = options;
 		const actor = options?.actor ?? item?.actor;
 		const rollData = item ?
-			ItemUtils.getRollData(item, { slotLevel }) :
+			ItemUtils.getRollData(item, { abilityMod, slotLevel }) :
 			actor?.getRollData();
 
 		// Determine certain fields based on index
-		let title = options.title;
-		let context = options.context;
-		let damageType = options.damageType;
+		const title = options.title;
+		const context = options.context;
+		const damageType = options.damageType;
 		let formula = options.formula;
 
 		// If no formula was given, derive from the item
@@ -352,7 +359,7 @@ export class RollFields {
 				critRoll
 			};
 		} catch (err) {
-			ui.notifications.error(i18n("br5e.error.rollEvaluation", { msg: err.message}));
+			error(i18nFormat("br5e.error.rollEvaluation", { msg: err.message}));
 			throw err; // propagate the error
 		}
 	}
@@ -367,7 +374,7 @@ export class RollFields {
 	 * @param {BRSettings} options.settings Override settings to use for the roll
 	 * @returns {import("./renderer.js").DamageDataProps[]}
 	 */
-	static constructItemDamageRange(options={}) {
+	static constructItemDamageRange(options:any={}) {
 		let index = options.index;
 		const { formula, item } = options;
 
@@ -411,15 +418,20 @@ export class RollFields {
 	static constructSaveButton({ item, abl = null, dc = null, context = null, settings }) {
 		const actor = item?.actor;
 		const saveData = ItemUtils.getSave(item);
-		if (abl) { saveData.ability = abl; }
-		if (dc) { saveData.dc = dc; }
-		if (context) { saveData.context = context; }
+		if(saveData){
+			if (abl) { saveData.ability = abl; }
+			if (dc) { saveData.dc = dc; }
+			if (context) { saveData.context = context; }
 
-		// Determine whether the DC should be hidden
-		const hideDCSetting = getSettings(settings).hideDC;
-		const hideDC = (hideDCSetting == "2" || (hideDCSetting == "1" && actor.data.type == "npc"));
+			// Determine whether the DC should be hidden
+			const hideDCSetting = getSettings(settings).hideDC;
+			const hideDC = (hideDCSetting == "2" || (hideDCSetting == "1" && actor.data.type == "npc"));
 
-		return { type: "button-save", hideDC, ...saveData };
+			return { type: "button-save", hideDC, ...saveData };
+		}else{
+			// TODO add something ?
+			return undefined;
+		}
 	}
 
 	/**
@@ -430,59 +442,81 @@ export class RollFields {
 	 * @returns {Promise<Array<import("./renderer.js").RenderModelEntry>>}
 	 */
 	static async constructModelsFromField(field, metadata, settings={}) {
-		let [fieldType, data] = field;
-		data = mergeObject(metadata, data ?? {}, { recursive: false });
+		const [fieldType, dataTmp] = field;
+		const data = mergeObject(metadata, dataTmp ?? {}, { recursive: false });
 
 		const { item, actor } = data;
 		settings = getSettings(settings);
+		// eslint-disable-next-line no-case-declarations
+		const abl = null;
+		// eslint-disable-next-line no-case-declarations
+		const dc = null;
+		// eslint-disable-next-line no-case-declarations
+		const context = null;
 
 		switch (fieldType) {
 			case 'header':
+			{
 				return [RollFields.constructHeaderData(data)];
-			case 'attack':
+			}
+			case 'attack': {
 				return [await RollFields.constructAttackRoll(data)];
+			}
 			case 'toolcheck':
 			case 'tool':
-			case 'check':
+			case 'check': {
 				return [RollFields.constructMultiRoll({
 					...data,
 					formula: data.formula ?? (await ItemUtils.getToolRoll(data.item, data.bonus)).formula,
 				})];
-			case 'damage':
+			}
+			case 'damage': {
 				return RollFields.constructItemDamageRange(data);
+			}
 			case 'other':
+			{
 				return RollFields.constructItemDamageRange({ ...data, damageIndex: "other" });
+			}
 			case 'ammo':
+			{
 				if (!data.ammo) return [];
-
 				// Only add ammo damage if the ammunition is a consumable with type ammo
-				const ammo = data.ammo;
-				if (ammo.data.type !== "consumable" || ammo.data.data.consumableType !== "ammo") {
+				const ammoTmp = data.ammo;
+				if (ammoTmp.data.type !== "consumable" || ammoTmp.data.data.consumableType !== "ammo") {
 					return [];
 				}
 
 				return RollFields.constructItemDamageRange({
 					...data,
-					item: ammo,
+					item: ammoTmp,
 					index: "all",
-					context: `${ammo.name}`
+					context: `${ammoTmp.name}`
 				});
+			}
 			case 'savedc':
+			{
 				// {customAbl: null, customDC: null}
-				return [RollFields.constructSaveButton({ settings, ...data })];
+				return [RollFields.constructSaveButton({item, abl, dc, context, settings, ...data })];
+			}
 			case 'ammosavedc':
+			{
 				// {customAbl: null, customDC: null}
 				if (!data.ammo || !isSave(data.ammo)) return [];
-
 				return [RollFields.constructSaveButton({
-					settings,
-					...data,
 					item: data.ammo,
-					context: `${data.ammo.name}`
-				 })];
+					abl,
+					dc,
+					context: <any>`${data.ammo.name}`,
+					settings,
+					// ...data,
+				})];
+			}
 			case 'custom':
+			{
 				const { title, rolls, formula, rollState } = data;
-				const rollData = Utils.getRollData({ item, actor });
+				const abilityMod = '';
+				const slotLevel = 0;
+				const rollData = Utils.getRollData(item, actor, abilityMod, slotLevel);
 				const resolvedFormula = new Roll(formula, rollData).formula;
 				return [RollFields.constructMultiRoll({
 					title, rollState,
@@ -490,9 +524,11 @@ export class RollFields {
 					numRolls: rolls || 1,
 					rollType: "custom"
 				})];
+			}
 			case 'description':
 			case 'desc':
 			case 'text':
+			{
 				const textFieldValue = data.text ?? data.content ?? item?.data.data.description.value;
 				if (textFieldValue) {
 					return [{
@@ -501,7 +537,9 @@ export class RollFields {
 					}];
 				}
 				break;
+			}
 			case 'flavor':
+			{
 				const message = data?.text ?? item.data.data.chatFlavor;
 				if (message) {
 					return [{
@@ -511,8 +549,10 @@ export class RollFields {
 					}];
 				}
 				break;
-			case 'crit':
+			}
+			case 'crit': {
 				return [RollFields.constructCritDamageRoll({ item, ...data })];
+			}
 		}
 
 		return [];
