@@ -42,7 +42,7 @@ export class BetterRollsChatCard {
 
 		// Hide Save DCs
 		const actor = this.speaker;
-		if ((!actor && !game.user?.isGM) || actor?.permission != 3) {
+		if ((!actor && !game.user?.isGM) || actor?.permission !== 3) {
 			html.find(".hideSave").text(i18n("br5e.hideDC.string"));
 		}
 
@@ -89,6 +89,7 @@ export class BetterRollsChatCard {
 			// Wait for the event queue before doing so to allow CSS calculations to work,
 			// otherwise the border color will be incorrectly transparent
 			window.setTimeout(() => {
+				//@ts-ignore
 				gsap?.from(html.get(), {
 					"border-color": "red",
 					"box-shadow": "0 0 6px inset #ff6400",
@@ -202,8 +203,8 @@ export class BetterRollsChatCard {
 			ev.stopPropagation();
 
 			// find out the proper dmg thats supposed to be applied
-			const dmgElement = $(ev.target.parentNode.parentNode.parentNode.parentNode);
-			const damageType = dmgElement.find(".dice-total").attr("data-damagetype");
+			const dmgElement = <JQuery<HTMLElement>>$(ev.target.parentNode.parentNode.parentNode.parentNode);
+			const damageType = <string>dmgElement.find(".dice-total").attr("data-damagetype");
 			let dmg = dmgElement.find('.red-base-die').text();
 
 			if (dmgElement.find('.red-extra-die').length > 0) {
@@ -255,7 +256,7 @@ export class BetterRollsChatCard {
 				const overwrite = await Dialog.confirm({
 					title: i18n("br5e.chat.damageButtons.tempOverwrite.title"),
 					content: i18n("br5e.chat.damageButtons.tempOverwrite.content", {
-						original: actorData.attributes.hp.temp,
+						original: <any>actorData.attributes.hp.temp,
 						new: healing
 					})
 				});
